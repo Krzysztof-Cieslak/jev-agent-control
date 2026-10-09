@@ -4,7 +4,7 @@ See the [README](README.md) for installation, authentication, configuration, and
 
 ## Development setup
 
-Use Node.js 20+ and npm; Node.js 24 is used for the release workflow. Git is required for the release-tooling unit tests. The plugin targets OpenCode V2 and pins its plugin API dependency to **2.0.24**.
+Use Node.js 20+ and npm; Node.js 24 is used for the release workflow. Git and `tar` are required for the release-tooling unit tests. The plugin targets OpenCode V2 and pins its plugin API dependency to **2.0.24**.
 
 From your checkout:
 
@@ -47,6 +47,7 @@ An already-running shared service needs to be restarted to pick up a changed pro
 | `test/*.test.ts`                                 | Unit tests, including local release-tooling fixtures.           |
 | `test/integration/`, `test/e2e/`, `test/live.ts` | Explicitly invoked integration and live tests.                  |
 | `scripts/release-notes.ts`                       | Extracts a release's notes from the changelog.                  |
+| `scripts/npm-release.ts`                         | Packs, verifies, previews, and publishes release artifacts.     |
 | `.github/workflows/`                             | CI and the manually dispatched release workflow.                |
 
 ## Runtime design
@@ -147,7 +148,44 @@ npm pack
 
 The `prepack` script builds the plugin. Packages include `dist/`, examples, README, this contributor guide, changelog, license, code of conduct, and package metadata. To verify an installed tarball, set `JEV_PLUGIN_ENTRY` to its installed `dist/index.js` when running `test:integration`.
 
-## GitHub releases
+To exercise the release workflow's package checks locally, start from a clean Git checkout and use an artifact directory outside it:
+
+```sh
+npm run build
+npm run release:pack -- ../jev-release-preview
+npm run release:preview -- ../jev-release-preview
+```
+
+This validates the package file list, records the source commit and SHA-512 integrity, and previews publication without contacting an AI service or publishing a package.
+
+## npm and GitHub releases
+
+The public npm package is `opencode-jev-agent-control`. Publication runs in the manually dispatched [Release workflow](https://github.com/Krzysztof-Cieslak/jev-agent-control/actions/workflows/release.yml), after the unit/static checks pass.
+
+### One-time npm authentication
+
+Use [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) for regular releases. Once the package exists, open its **Settings → Trusted Publisher** page on npmjs.com and configure:
+
+| Setting              | Value                       |
+| -------------------- | --------------------------- |
+| Publisher            | GitHub Actions              |
+| Organization or user | `Krzysztof-Cieslak`         |
+| Repository           | `jev-agent-control`         |
+| Workflow filename    | `release.yml`               |
+| Environment          | Leave empty                 |
+| Allowed action       | Enable direct `npm publish` |
+
+The workflow grants `id-token: write` to its publishing job and uses npm 11.19.0, which supports OIDC. A new npm trusted-publisher configuration needs its first successful publish within two days. The source repository is private, so npm provenance generation is disabled.
+
+For the **first publication**, when the package does not yet exist, create a granular npm token with permission to publish the new package and the **Bypass two-factor authentication** option for unattended publishing. Save it as the repository's `NPM_TOKEN` Actions secret, for example using the interactive prompt:
+
+```sh
+gh secret set NPM_TOKEN --repo Krzysztof-Cieslak/jev-agent-control
+```
+
+Run the release once using that token, configure the trusted publisher above, and remove `NPM_TOKEN` when OIDC publishing is in place. The token is optional for subsequent releases; the npm CLI prefers OIDC. npm login credentials and TypeSafe API keys are separate, and release jobs do not use TypeSafe keys.
+
+### Running a release
 
 Open **Actions → Release → Run workflow** on `main`, select `patch`, `minor`, or `major`, and run it. The workflow:
 
@@ -155,18 +193,25 @@ Open **Actions → Release → Run workflow** on `main`, select `patch`, `minor`
 2. Bumps `package.json` and both root version entries in `package-lock.json`.
 3. Generates `CHANGELOG.md` from commit messages, grouped by type with breaking-change notes.
 4. Runs formatting, type checks, unit tests, and the build.
-5. Commits the version/changelog as `chore(release): x.y.z`, creates an annotated `vx.y.z` tag, and atomically pushes the commit and tag.
-6. Creates a GitHub release containing the new changelog section.
+5. Commits the version/changelog locally as `chore(release): x.y.z` and creates an annotated `vx.y.z` tag.
+6. Packs the built plugin, validates its entrypoints and file list, records its SHA-512 integrity and source commit, and runs `npm publish --dry-run` on that tarball.
+7. Saves the tarball, metadata, and release notes as a workflow artifact, then atomically pushes the release commit and tag.
+8. A separate publishing job checks out the tag, verifies the downloaded artifact, and publishes that exact tarball to npm with public access and the `latest` dist-tag.
+9. Creates the GitHub release with the changelog section and npm tarball attached.
 
-Enable **dry_run** to preview the bump and release notes in the Actions run summary. The preview only modifies the runner's checkout. For example:
+Enable **dry_run** to preview the bump, release notes, and npm package in the Actions run summary. The preview creates its commit/tag only in the runner's checkout and uploads the package for inspection; it does not push, publish to npm, or create a GitHub release. No npm credential is needed for this preview. For example:
 
 ```sh
 gh workflow run release.yml --ref main -f bump=patch -F dry_run=true
 ```
 
-Releases use the workflow's `GITHUB_TOKEN` with `contents: write`. They are serialized, and a concurrent change to `main` causes the atomic push to fail rather than overwrite that change. If release creation fails after a successful push, the existing tag can be used to create the GitHub release with the corresponding changelog section.
+Releases use the workflow's `GITHUB_TOKEN` with `contents: write` for Git operations and GitHub releases. They are serialized, and a concurrent change to `main` causes the atomic push to fail rather than overwrite that change.
 
-The release workflow does **not publish to npm** or invoke AI/E2E tests. GitHub releases provide the tagged source archives. Release commits made with `GITHUB_TOKEN` do not trigger another CI run; the release workflow itself runs the checks before pushing.
+### Retrying publication
+
+If npm or GitHub publication fails after the preparation job succeeds, use **Re-run failed jobs** on the same workflow run. The publishing job reuses the original artifact and version. An already-published npm version is skipped only when its integrity matches that artifact; differing contents fail rather than being overwritten. An existing GitHub release has its tarball attachment refreshed. Artifacts are retained for 30 days.
+
+Release commits made with `GITHUB_TOKEN` do not trigger another CI run or a tag-triggered workflow; this workflow runs its own checks and explicitly starts its publishing job. It uses unit tests and static/build checks, with no AI/E2E runs.
 
 ## Developer references
 

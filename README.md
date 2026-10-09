@@ -6,9 +6,30 @@ An **OpenCode V2 server plugin** that uses [Jev](https://docs.typesafe.ai/introd
 
 Requires OpenCode V2; tested with **OpenCode 2.0.24**.
 
+## Install from npm
+
+For npm releases, add the package to your project's `opencode.jsonc`:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": [
+    {
+      "package": "opencode-jev-agent-control",
+      "options": {
+        "enabled": true,
+        "autoHandoff": true,
+      },
+    },
+  ],
+}
+```
+
+OpenCode installs the package automatically. Then [connect your TypeSafe account](#api-key).
+
 ## Install locally
 
-The plugin has not been published to npm yet. With Node.js 20+ and npm installed, clone this repository and build it:
+To use a local checkout or unreleased changes, clone this repository and build it with Node.js 20+ and npm:
 
 ```sh
 git clone https://github.com/Krzysztof-Cieslak/jev-agent-control.git

@@ -3,6 +3,18 @@
   "version": "0.1.0",
   "description": "Automatic OpenCode agent routing and handoffs powered by Jev",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Krzysztof-Cieslak/jev-agent-control.git"
+  },
+  "homepage": "https://github.com/Krzysztof-Cieslak/jev-agent-control#readme",
+  "bugs": {
+    "url": "https://github.com/Krzysztof-Cieslak/jev-agent-control/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "type": "module",
   "exports": {
     ".": {
@@ -35,7 +47,9 @@
     "prepare": "husky",
     "commitlint": "commitlint",
     "release:prepare": "commit-and-tag-version --skip.commit --skip.tag",
-    "release:notes": "tsx scripts/release-notes.ts"
+    "release:notes": "tsx scripts/release-notes.ts",
+    "release:pack": "tsx scripts/npm-release.ts pack",
+    "release:preview": "tsx scripts/npm-release.ts preview"
   },
   "dependencies": {
     "@opencode/plugin": "2.0.24",
