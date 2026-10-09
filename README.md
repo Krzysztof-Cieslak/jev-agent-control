@@ -36,7 +36,21 @@ Merge this entry into existing configuration. The plugin is built as an npm pack
 
 ### API key
 
-The **OpenCode server process** needs `TYPESAFE_API_KEY`. For a local standalone session, you can load your `.env` before launching OpenCode:
+Connect TypeSafe through OpenCode's existing account management:
+
+1. Open `/connect` in a project with this plugin enabled.
+2. Select **TypeSafe (Jev)**, choose **API key**, and paste your TypeSafe API key.
+3. Start a request; Jev routing uses your active TypeSafe account automatically.
+
+You can also connect from a terminal in the project:
+
+```sh
+opencode auth login typesafe --method key
+```
+
+Use `/connect` to add, switch, or delete saved accounts. OpenCode stores them in its server-side credential database and makes them available across projects using the same server. The plugin resolves the active account for each decision, so account switches, key changes, and removals take effect on the next evaluation without restarting OpenCode. Rejected keys are marked as needing authentication in OpenCode's account UI.
+
+For headless use, `TYPESAFE_API_KEY` on the **OpenCode server process** is an optional fallback. A saved account takes precedence over this environment connection. For example, load a local `.env` before starting a standalone server:
 
 ```sh
 set -a
@@ -45,7 +59,7 @@ set +a
 opencode --standalone
 ```
 
-An already-running shared OpenCode service must be restarted with the key available in its environment. The plugin reads environment variables; it does not automatically read a project's `.env`. The live test command below explicitly loads `.env`.
+An already-running shared service needs to be restarted to pick up a changed process environment. This is only necessary for environment-based credentials; saved accounts use `/connect`. The plugin does not automatically load project `.env` files. The live test commands below explicitly load `.env`.
 
 `TYPESAFE_BASE_URL` can override the TypeSafe API root for testing or a proxy. The default endpoint is `https://api.typesafe.ai/v1/systemone`.
 
@@ -172,7 +186,7 @@ npm run test:integration
 npm run format:check
 ```
 
-- Unit tests cover routing, cancellation, duplicate admission, model rollback, manual control, context bounds, and cycle limits.
+- Unit tests cover routing, cancellation, duplicate admission, model rollback, manual control, context bounds, cycle limits, and account/key changes using mocked credential and HTTP APIs.
 - The integration test requires **Bun 1.3+**. It runs a real embedded OpenCode host with an isolated database/configuration and local fake Jev/LLM HTTP endpoints. It verifies Plan → Build → Reviewer, model changes, completion, and native manual overrides.
 - Run a small **live Jev evaluation** against synthetic examples using the API key in `.env`:
 

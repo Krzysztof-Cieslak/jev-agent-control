@@ -1,4 +1,5 @@
 import { Plugin } from "@opencode/plugin";
+import { registerTypeSafe } from "./auth.js";
 import { parseOptions } from "./config.js";
 import { Controller } from "./controller.js";
 import { createEvaluator } from "./jev.js";
@@ -8,6 +9,7 @@ export default Plugin.define({
   id: "jev-agent-control",
   async setup(ctx) {
     const options = parseOptions(ctx.options);
+    const resolveCredential = await registerTypeSafe(ctx.integration);
     const host: Host = {
       directory: ctx.location.directory,
       workspaceID: ctx.location.workspaceID,
@@ -45,7 +47,11 @@ export default Plugin.define({
       },
       log: (message) => console.warn(`[jev-agent-control] ${message}`),
     };
-    const controller = new Controller(host, options, createEvaluator(options));
+    const controller = new Controller(
+      host,
+      options,
+      createEvaluator(options, resolveCredential),
+    );
     const events = new AbortController();
     await ctx.session.hook("prompt", (event) =>
       controller.prompt(event.sessionID, event.messageID, event.prompt.text),

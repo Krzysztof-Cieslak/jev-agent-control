@@ -1,4 +1,7 @@
-import { choice, TypeSafeClient } from "@typesafe-ai/sdk";
+import { AuthenticationError, choice, TypeSafeClient } from "@typesafe-ai/sdk";
+import type { Fetch } from "@typesafe-ai/sdk";
+import { TypeSafeNotConnectedError } from "./auth.js";
+import type { ResolveTypeSafeCredential } from "./auth.js";
 import type { Options } from "./config.js";
 import type { Choice, Evaluator, WorkStatus } from "./types.js";
 
@@ -48,17 +51,11 @@ export function validateChoice(value: unknown, labels: string[]): Choice {
 
 export function createEvaluator(
   options: Options,
-  client?: TypeSafeClient,
+  resolveCredential: ResolveTypeSafeCredential,
+  fetch?: Fetch,
 ): Evaluator {
-  // Initialize lazily so installing without a key doesn't prevent OpenCode startup.
-  let sdk = client;
   return async (input, signal) => {
-    sdk ??= new TypeSafeClient({
-      defaultModel: options.model,
-      timeout: options.timeoutMs,
-      retry: { maxRetries: 0 },
-      logLevel: "off",
-    });
+    signal.throwIfAborted();
     const labels = input.candidates.map((agent) => agent.id);
     if (labels.length < 2 || labels.length > 255)
       throw new Error("Jev routing requires between 2 and 255 eligible agents");
@@ -82,12 +79,32 @@ export function createEvaluator(
       throw new Error(
         "Jev request exceeds the routing context budget; shorten agent descriptions or select fewer agents",
       );
-    const started = performance.now();
-    const result = await sdk.systemOne(request, {
-      signal,
+    const credential = await resolveCredential();
+    signal.throwIfAborted();
+    if (!credential?.apiKey.trim()) throw new TypeSafeNotConnectedError();
+    // Each decision captures the active key; switching/removing accounts needs no restart.
+    const sdk = new TypeSafeClient({
+      apiKey: credential.apiKey,
+      defaultModel: options.model,
       timeout: options.timeoutMs,
       retry: { maxRetries: 0 },
+      logLevel: "off",
+      fetch,
     });
+    const started = performance.now();
+    const result = await sdk
+      .systemOne(request, {
+        signal,
+        timeout: options.timeoutMs,
+        retry: { maxRetries: 0 },
+      })
+      .catch(async (error: unknown) => {
+        if (error instanceof AuthenticationError)
+          await credential.reportAuth?.(true).catch(() => {});
+        throw error;
+      });
+    const latencyMs = Math.round(performance.now() - started);
+    await credential.reportAuth?.(false).catch(() => {});
     if (typeof result.model !== "string")
       throw new Error("Invalid Jev model response");
     return {
@@ -97,7 +114,7 @@ export function createEvaluator(
         Object.keys(workCriteria),
       ) as Choice<WorkStatus>,
       model: result.model,
-      latencyMs: Math.round(performance.now() - started),
+      latencyMs,
     };
   };
 }

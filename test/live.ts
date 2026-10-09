@@ -6,7 +6,10 @@ import type { Candidate, WorkStatus } from "../src/types.js";
 if (!process.env.TYPESAFE_API_KEY)
   throw new Error("Set TYPESAFE_API_KEY in .env before running test:live");
 const options = parseOptions();
-const evaluate = createEvaluator(options);
+const evaluate = createEvaluator(options, async () => {
+  const apiKey = process.env.TYPESAFE_API_KEY;
+  return apiKey ? { apiKey } : undefined;
+});
 const candidates: Candidate[] = [
   {
     id: "plan",

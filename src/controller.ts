@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { TypeSafeNotConnectedError } from "./auth.js";
 import {
   availableModel,
   buildState,
@@ -499,7 +500,11 @@ export class Controller {
       // SDK errors can contain request/response bodies; persist only the error class.
       const name = error instanceof Error ? error.name : "UnknownError";
       await this.trace(id, state, { trigger, outcome: `error:${name}` });
-      this.host.log(`Jev routing skipped (${name})`);
+      this.host.log(
+        error instanceof TypeSafeNotConnectedError
+          ? error.message
+          : `Jev routing skipped (${name})`,
+      );
     } finally {
       clearTimeout(deadline);
       if (state.abort === abort) state.abort = undefined;

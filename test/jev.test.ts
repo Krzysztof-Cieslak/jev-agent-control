@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { TypeSafeClient } from "@typesafe-ai/sdk";
 import { parseOptions } from "../src/config.js";
 import { buildState, candidates } from "../src/context.js";
 import { createEvaluator, validateChoice } from "../src/jev.js";
@@ -8,9 +7,10 @@ import { agents, assistant, session, user } from "./helpers.js";
 
 test("Jev uses dynamic criteria, checks the HTTP response, and preserves confidence", async () => {
   let body: Record<string, any> = {};
-  const client = new TypeSafeClient({
-    apiKey: "test-only",
-    fetch: async (_, init) => {
+  const evaluate = createEvaluator(
+    parseOptions(),
+    async () => ({ apiKey: "test-only" }),
+    async (_, init) => {
       body = JSON.parse(String(init?.body));
       return Response.json({
         model: "jev-1.13.0",
@@ -31,8 +31,7 @@ test("Jev uses dynamic criteria, checks the HTTP response, and preserves confide
         usage: { input_tokens: 100, output_tokens: 20 },
       });
     },
-  });
-  const evaluate = createEvaluator(parseOptions(), client);
+  );
   const result = await evaluate(
     {
       state: { latest_request: "Plan a feature" },
