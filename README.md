@@ -124,6 +124,44 @@ Jev outages, invalid responses, and low confidence retain the current selection.
 
 [GitHub Actions](https://github.com/Krzysztof-Cieslak/jev-agent-control/actions/workflows/ci.yml) runs on pushes to `main`, pull requests, and manual dispatches. On Node.js **20, 22, and 24**, it checks formatting and types, runs the unit tests in `test/*.test.ts`, and builds the plugin. The unit suite uses in-memory mocks and a mock Jev HTTP transport, so CI requires no API keys and makes no AI calls.
 
+### Commit messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```text
+feat(router): support a new routing policy
+fix(jev): handle a timeout
+docs: clarify installation
+feat!: change the configuration format
+```
+
+Supported types are `feat`, `fix`, `perf`, `revert`, `docs`, `refactor`, `test`, `build`, `ci`, `chore`, and `style`. Scopes are optional; use `!` or a `BREAKING CHANGE:` footer for breaking changes.
+
+`npm install` / `npm ci` installs a Husky commit-message hook. CI validates new commits and PR titles with commitlint. Use **squash merge** with the validated PR title so the resulting commit follows the same format. The release workflow validates all commits after the historical baseline in `.github/commitlint-base`; the two earlier commits are recorded in the initial changelog.
+
+Server-side rulesets for this private repository require GitHub Pro. Until enabled, local hooks, failing CI checks, and the release gate provide validation; GitHub does not enforce a branch-rule merge block.
+
+### GitHub releases
+
+Open **Actions → Release → Run workflow** on `main`, select `patch`, `minor`, or `major`, and run it. The workflow:
+
+1. Validates Conventional Commits and checks for unreleased changes.
+2. Bumps `package.json` and both root version entries in `package-lock.json`.
+3. Generates `CHANGELOG.md` from commit messages, grouped by type with breaking-change notes.
+4. Runs formatting, type checks, unit tests, and the build.
+5. Commits the version/changelog as `chore(release): x.y.z`, creates an annotated `vx.y.z` tag, and atomically pushes the commit and tag.
+6. Creates a GitHub release containing the new changelog section.
+
+Enable **dry_run** to preview the bump and release notes in the Actions run summary. The preview only modifies the runner's checkout. For example:
+
+```sh
+gh workflow run release.yml --ref main -f bump=patch -F dry_run=true
+```
+
+Releases use the workflow's `GITHUB_TOKEN` with `contents: write`. They are serialized, and a concurrent change to `main` causes the atomic push to fail rather than overwrite that change. If release creation fails after a successful push, the existing tag can be used to create the GitHub release with the corresponding changelog section.
+
+The release workflow does **not publish to npm** or invoke AI/E2E tests. GitHub releases provide the tagged source archives. Release commits made with `GITHUB_TOKEN` do not trigger another CI run; the release workflow itself runs the checks before pushing.
+
 ### Local checks
 
 ```sh

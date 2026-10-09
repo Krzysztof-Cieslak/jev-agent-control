@@ -26,15 +26,23 @@
     "test:e2e": "npm run build && bun --env-file=.env test/e2e/live.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "prepare": "husky",
+    "commitlint": "commitlint",
+    "release:prepare": "commit-and-tag-version --skip.commit --skip.tag",
+    "release:notes": "tsx scripts/release-notes.ts"
   },
   "dependencies": {
     "@opencode/plugin": "2.0.24",
     "@typesafe-ai/sdk": "0.6.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "20.5.3",
+    "@commitlint/config-conventional": "20.5.3",
     "@opencode/sdk": "2.0.24",
     "@types/node": "^22.0.0",
+    "commit-and-tag-version": "12.7.3",
+    "husky": "9.1.7",
     "prettier": "^3.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
