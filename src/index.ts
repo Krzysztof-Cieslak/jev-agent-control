@@ -54,28 +54,25 @@ export default Plugin.define({
       controller.running(event.sessionID),
     );
     await ctx.command.transform((editor) => {
-      for (const action of ["auto", "pause", "pin", "status"] as const) {
+      for (const action of ["auto", "pause", "status"] as const) {
         editor.add({
           name: `jev-${action}`,
           description: {
             auto: "Enable Jev routing for the next user request",
             pause: "Pause Jev routing",
-            pin: "Pin an agent for subsequent user requests: /jev-pin <agent>",
             status: "Show Jev routing mode and recent decisions",
           }[action],
-          execute: async ({ sessionID, prompt }) => {
+          execute: async ({ sessionID }) => {
             const mode: Mode | undefined =
               action === "auto"
                 ? { type: "auto" }
                 : action === "pause"
                   ? { type: "paused" }
-                  : action === "pin"
-                    ? { type: "pinned", agent: prompt.text.trim() }
-                    : undefined;
+                  : undefined;
             const state = await controller.control(sessionID, mode);
             await host.notice(
               sessionID,
-              `Jev routing: ${state.mode.type}${state.mode.type === "pinned" ? ` (${state.mode.agent})` : ""}\n${state.traces
+              `Jev routing: ${state.mode.type}\n${state.traces
                 .slice(-5)
                 .map(
                   (trace) =>

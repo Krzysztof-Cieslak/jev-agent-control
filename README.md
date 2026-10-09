@@ -57,14 +57,15 @@ Send a normal request:
 
 With a suitable reviewer agent, Jev can route this through `plan → build → reviewer`. A request for **planning only** should finish after planning. Handoffs depend on Jev's interpretation and the configured confidence thresholds.
 
-| Command             | Effect                                                                      |
-| ------------------- | --------------------------------------------------------------------------- |
-| `/jev-auto`         | Enable automatic routing for the next user request.                         |
-| `/jev-pause`        | Pause routing for this session.                                             |
-| `/jev-pin reviewer` | Use this agent on subsequent user requests, including its configured model. |
-| `/jev-status`       | Show the mode and five most recent decisions.                               |
+| Command       | Effect                                              |
+| ------------- | --------------------------------------------------- |
+| `/jev-auto`   | Enable automatic routing for the next user request. |
+| `/jev-pause`  | Pause routing for this session.                     |
+| `/jev-status` | Show the mode and five most recent decisions.       |
 
 Commands add a non-resuming synthetic status notice to the session inbox, so they do not make an extra LLM call. Manual agent **or model** selection pauses automatic routing; use `/jev-auto` to restore it. Modes and bounded decision history persist in OpenCode's plugin storage.
+
+Use OpenCode's native agent and model selectors for manual overrides.
 
 ### Custom agents
 
@@ -104,7 +105,7 @@ Options belong inside the plugin entry's `options` object.
 | `excludeAgents` | `[]`           | Agent IDs excluded from routing.                                                  |
 | `descriptions`  | `{}`           | Routing-description overrides keyed by agent ID.                                  |
 
-Jev Choice supports at most 255 options. Automatic routing requires at least two eligible agents; pinning also works with one. The whole Jev request is capped at 24,000 characters, so very large agent catalogs may need shorter descriptions or `includeAgents`.
+Jev Choice supports at most 255 options. Automatic routing requires at least two eligible agents. The whole Jev request is capped at 24,000 characters, so very large agent catalogs may need shorter descriptions or `includeAgents`.
 
 ## How it works
 
@@ -172,7 +173,7 @@ npm run format:check
 ```
 
 - Unit tests cover routing, cancellation, duplicate admission, model rollback, manual control, context bounds, and cycle limits.
-- The integration test requires **Bun 1.3+**. It runs a real embedded OpenCode host with an isolated database/configuration and local fake Jev/LLM HTTP endpoints. It verifies Plan → Build → Reviewer, model changes, completion, and the pin command.
+- The integration test requires **Bun 1.3+**. It runs a real embedded OpenCode host with an isolated database/configuration and local fake Jev/LLM HTTP endpoints. It verifies Plan → Build → Reviewer, model changes, completion, and native manual overrides.
 - Run a small **live Jev evaluation** against synthetic examples using the API key in `.env`:
 
   ```sh

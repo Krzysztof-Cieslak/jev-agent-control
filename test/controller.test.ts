@@ -112,7 +112,7 @@ test("manual selection during evaluation pauses routing", async () => {
   await h.controller.close();
 });
 
-test("paused and pinned modes persist and pinning does not invoke Jev", async () => {
+test("paused mode persists until automatic routing is explicitly resumed", async () => {
   let calls = 0;
   const h = harness(async () => {
     calls++;
@@ -120,16 +120,46 @@ test("paused and pinned modes persist and pinning does not invoke Jev", async ()
   });
   await h.controller.control(h.state.id, { type: "paused" });
   await h.controller.prompt(h.state.id, "msg_1", "Plan");
-  await h.controller.control(h.state.id, { type: "pinned", agent: "reviewer" });
-  await h.controller.prompt(h.state.id, "msg_2", "Continue");
   assert.equal(calls, 0);
-  assert.equal(h.state.agent, "reviewer");
-  assert.equal(h.saved.get(h.state.id)?.mode.type, "pinned");
-  await assert.rejects(
-    h.controller.control(h.state.id, { type: "pinned", agent: "missing" }),
-  );
+  assert.equal(h.state.agent, "build");
+  assert.equal(h.saved.get(h.state.id)?.mode.type, "paused");
+  await h.controller.control(h.state.id, { type: "auto" });
+  await h.controller.prompt(h.state.id, "msg_2", "Plan");
+  assert.equal(calls, 1);
+  assert.equal(h.state.agent, "plan");
+  assert.equal(h.saved.get(h.state.id)?.mode.type, "auto");
   await h.controller.close();
 });
+
+for (const kind of ["agent", "model"] as const) {
+  test(`native ${kind} selection before the first request pauses automatic routing`, async () => {
+    let calls = 0;
+    const h = harness(async () => {
+      calls++;
+      return decision();
+    });
+    if (kind === "agent") {
+      h.state.agent = "reviewer";
+      h.emit("session.agent.selected", { agent: "reviewer" });
+    } else {
+      h.state.model = { providerID: "test", id: "reviewer" };
+      h.emit("session.model.selected", { model: h.state.model });
+    }
+    const selection = { agent: h.state.agent, model: { ...h.state.model } };
+    await h.controller.prompt(h.state.id, "msg_1", "Continue");
+    h.admit();
+    await h.finish();
+    assert.equal(calls, 0);
+    assert.deepEqual({ agent: h.state.agent, model: h.state.model }, selection);
+    assert.deepEqual(h.changes, []);
+    assert.equal(h.saved.get(h.state.id)?.mode.type, "paused");
+    await h.controller.control(h.state.id, { type: "auto" });
+    await h.controller.prompt(h.state.id, "msg_2", "Plan");
+    assert.equal(calls, 1);
+    assert.equal(h.state.agent, "plan");
+    await h.controller.close();
+  });
+}
 
 test("interrupted or waiting-for-user work is not resumed", async () => {
   for (const event of [

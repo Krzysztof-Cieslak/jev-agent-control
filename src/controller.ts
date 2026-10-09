@@ -43,12 +43,8 @@ function restored(value: unknown, enabled: boolean): SavedState {
   };
   if (!value || typeof value !== "object") return fallback;
   const saved = value as Partial<SavedState>;
-  if (
-    saved.mode?.type === "auto" ||
-    saved.mode?.type === "paused" ||
-    (saved.mode?.type === "pinned" && typeof saved.mode.agent === "string")
-  )
-    fallback.mode = saved.mode;
+  if (saved.mode?.type === "auto" || saved.mode?.type === "paused")
+    fallback.mode = { type: saved.mode.type };
   if (Array.isArray(saved.traces))
     fallback.traces = saved.traces
       .filter((trace) => trace && typeof trace.outcome === "string")
@@ -207,7 +203,14 @@ export class Controller {
     )
       return;
     const id = event.data.sessionID;
-    const state = this.sessions.get(id);
+    const manualSelection =
+      event.type === "session.agent.selected" ||
+      event.type === "session.model.selected";
+    const state =
+      this.sessions.get(id) ??
+      (manualSelection && event.location?.directory === this.host.directory
+        ? this.runtime(id)
+        : undefined);
     if (!state || !remember(state.events, event.id)) return;
     switch (event.type) {
       case "session.execution.started":
@@ -401,20 +404,6 @@ export class Controller {
       if (!valid() || !this.owns(session)) return;
       if (trigger === "idle" && session.outcome !== "succeeded") return;
       const eligible = candidates(agents, this.options);
-      if (state.mode.type === "pinned") {
-        const target = eligible.find(
-          (agent) => agent.id === (state.mode as { agent: string }).agent,
-        );
-        if (!target) throw new Error("Pinned agent unavailable");
-        const applied = await this.apply(id, state, revision, session, target);
-        await this.trace(id, state, {
-          trigger,
-          from: session.agent,
-          to: target.id,
-          outcome: applied ? "pinned" : "superseded",
-        });
-        return;
-      }
       if (eligible.length < 2) {
         await this.trace(id, state, {
           trigger,
@@ -524,13 +513,6 @@ export class Controller {
       state.armed = false;
     }
     return this.enqueue(state, async () => {
-      if (
-        mode?.type === "pinned" &&
-        !candidates(await this.host.agents(), this.options).some(
-          (agent) => agent.id === mode.agent,
-        )
-      )
-        throw new Error(`Not an eligible primary agent: ${mode.agent}`);
       if (mode) {
         state.mode = mode;
         await this.save(id, state);

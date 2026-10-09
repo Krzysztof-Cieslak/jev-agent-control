@@ -47,8 +47,7 @@ export type Evaluator = (
   signal: AbortSignal,
 ) => Promise<Decision>;
 
-export type Mode =
-  { type: "auto" } | { type: "paused" } | { type: "pinned"; agent: string };
+export type Mode = { type: "auto" } | { type: "paused" };
 export interface Trace {
   time: string;
   trigger: "prompt" | "idle";

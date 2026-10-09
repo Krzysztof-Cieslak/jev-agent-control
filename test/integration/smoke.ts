@@ -203,10 +203,14 @@ try {
   const end = Date.now() + 5000;
   while (jevCalls.length < 6 && Date.now() < end) await delay(50);
   assert.deepEqual(modelCalls, ["plan", "build", "reviewer", "plan"]);
-  await host.sessions.command({
+  const decisionsBeforeOverride = jevCalls.length;
+  await host.sessions.switchAgent({
     sessionID: next.id,
-    name: "jev-pin",
-    text: "reviewer",
+    agent: "reviewer",
+  });
+  await host.sessions.switchModel({
+    sessionID: next.id,
+    model: { providerID: "jev-test", id: "reviewer" },
   });
   await host.sessions.prompt({ sessionID: next.id, text: "Review this" });
   await host.sessions.wait({ sessionID: next.id });
@@ -215,8 +219,9 @@ try {
     "reviewer",
   );
   assert.equal(modelCalls.at(-1), "reviewer");
+  assert.equal(jevCalls.length, decisionsBeforeOverride);
   console.log(
-    "Integration passed: real OpenCode host, prompt routing, two autonomous handoffs, model switching, plan-only completion, and pin command.",
+    "Integration passed: real OpenCode host, prompt routing, two autonomous handoffs, model switching, plan-only completion, and native manual overrides.",
   );
 } finally {
   await host?.close();
