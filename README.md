@@ -1,5 +1,7 @@
 # Jev Agent Control
 
+[![CI](https://github.com/Krzysztof-Cieslak/jev-agent-control/actions/workflows/ci.yml/badge.svg)](https://github.com/Krzysztof-Cieslak/jev-agent-control/actions/workflows/ci.yml)
+
 An **OpenCode V2 server plugin** that uses [Jev](https://docs.typesafe.ai/introduction) to route requests between Plan, Build, and your own primary agents. It also hands off unfinished work at completed execution boundaries and follows each target agent's configured model.
 
 Tested with **OpenCode 2.0.24**. The plugin API dependency is pinned to that release.
@@ -117,6 +119,12 @@ New input, manual selection, and interruption invalidate pending decisions. Queu
 Jev outages, invalid responses, and low confidence retain the current selection. Decision history contains choices, probabilities, confidence, model version, and latency—not the transcript sent for evaluation. The selected agent's normal OpenCode instructions and permissions apply.
 
 ## Development and verification
+
+### Continuous integration
+
+[GitHub Actions](https://github.com/Krzysztof-Cieslak/jev-agent-control/actions/workflows/ci.yml) runs on pushes to `main`, pull requests, and manual dispatches. On Node.js **20, 22, and 24**, it checks formatting and types, runs the unit tests in `test/*.test.ts`, and builds the plugin. The unit suite uses in-memory mocks and a mock Jev HTTP transport, so CI requires no API keys and makes no AI calls.
+
+### Local checks
 
 ```sh
 npm run check
