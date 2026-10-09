@@ -2,6 +2,7 @@
   "name": "opencode-jev-agent-control",
   "version": "0.1.0",
   "description": "Automatic OpenCode agent routing and handoffs powered by Jev",
+  "license": "MIT",
   "type": "module",
   "exports": {
     ".": {
@@ -12,7 +13,9 @@
   "files": [
     "dist",
     "examples",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "CODE_OF_CONDUCT.md"
   ],
   "engines": {
     "node": ">=20"

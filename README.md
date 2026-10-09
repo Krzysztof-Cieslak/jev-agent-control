@@ -201,7 +201,15 @@ Package for distribution:
 npm pack
 ```
 
-Only `dist/`, examples, README, and package metadata are included. To verify an installed tarball, set `JEV_PLUGIN_ENTRY` to its installed `dist/index.js` when running `test:integration`.
+Packages include `dist/`, examples, README, license, code of conduct, and package metadata. To verify an installed tarball, set `JEV_PLUGIN_ENTRY` to its installed `dist/index.js` when running `test:integration`.
+
+## Code of conduct
+
+This project follows the [Contributor Covenant 3.0 Code of Conduct](CODE_OF_CONDUCT.md). Please read it before participating; it includes private reporting instructions.
+
+## License
+
+Licensed under the [MIT License](LICENSE).
 
 ## References
 
