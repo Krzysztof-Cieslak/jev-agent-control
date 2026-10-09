@@ -1,0 +1,31 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": [
+    {
+      // Replace this with your clone's absolute path.
+      "package": "/absolute/path/to/jev-agent-control",
+      "options": {
+        "enabled": true,
+        "autoHandoff": true,
+        "model": "jev-latest",
+        "minConfidence": 0.75,
+        "minMargin": 0.15,
+        "timeoutMs": 3500,
+        "maxHandoffs": 6,
+        "descriptions": {
+          "reviewer": "Review completed changes for bugs, regressions, and missing tests. Report findings.",
+        },
+      },
+    },
+  ],
+  "agents": {
+    "reviewer": {
+      "mode": "primary",
+      "description": "Reviews completed changes for correctness and regressions",
+      // Optionally choose an available model, including its variant:
+      // "model": "provider/model#variant",
+      "system": "Review the current changes. Report actionable findings with file and line references, or say that no issues were found. Do not implement changes.",
+      "permissions": [{ "action": "edit", "resource": "*", "effect": "deny" }],
+    },
+  },
+}

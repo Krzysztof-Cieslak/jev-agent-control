@@ -1,0 +1,42 @@
+{
+  "name": "opencode-jev-agent-control",
+  "version": "0.1.0",
+  "description": "Automatic OpenCode agent routing and handoffs powered by Jev",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "examples",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "test:integration": "npm run build && bun test/integration/smoke.ts",
+    "test:live": "tsx --env-file=.env test/live.ts",
+    "test:e2e": "npm run build && bun --env-file=.env test/e2e/live.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@opencode/plugin": "2.0.24",
+    "@typesafe-ai/sdk": "0.6.0"
+  },
+  "devDependencies": {
+    "@opencode/sdk": "2.0.24",
+    "@types/node": "^22.0.0",
+    "prettier": "^3.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
