@@ -2,7 +2,7 @@
 
 Changes are grouped from Conventional Commit messages.
 
-## 0.1.0 — Initial development
+## Initial development
 
 The initial development history predates Conventional Commit enforcement:
 

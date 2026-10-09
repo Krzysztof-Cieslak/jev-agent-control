@@ -21,6 +21,83 @@ const releaseCLI = join(
 );
 const commitlintCLI = join(project, "node_modules/@commitlint/cli/cli.js");
 
+test("first release preserves version 0.1.0 and includes initial development history", async () => {
+  const temporary =
+    process.env.TMPDIR ??
+    (await access("/tmp/opencode").then(
+      () => "/tmp/opencode",
+      () => tmpdir(),
+    ));
+  const directory = await mkdtemp(join(temporary, "jev-first-release-test-"));
+  const git = (...args: string[]) =>
+    execFileSync(
+      "git",
+      [
+        "-C",
+        directory,
+        "-c",
+        "user.name=Release Test",
+        "-c",
+        "user.email=release@example.invalid",
+        ...args,
+      ],
+      { encoding: "utf8" },
+    ).trim();
+  try {
+    git("init", "-b", "main");
+    git("remote", "add", "origin", "https://github.com/example/plugin.git");
+    await copyFile(
+      join(project, ".versionrc.json"),
+      join(directory, ".versionrc.json"),
+    );
+    const manifest = JSON.stringify({ name: "fixture", version: "0.1.0" });
+    const lock = JSON.stringify({
+      name: "fixture",
+      version: "0.1.0",
+      lockfileVersion: 3,
+      packages: { "": { name: "fixture", version: "0.1.0" } },
+    });
+    await writeFile(join(directory, "package.json"), manifest);
+    await writeFile(join(directory, "package-lock.json"), lock);
+    await writeFile(
+      join(directory, "CHANGELOG.md"),
+      "# Changelog\n\n## Initial development\n\n- Bootstrap commit.\n",
+    );
+    git("add", ".");
+    git("commit", "-m", "feat: initial routing implementation");
+    const before = git("rev-parse", "HEAD");
+    execFileSync(
+      process.execPath,
+      [
+        releaseCLI,
+        "--skip.commit",
+        "--skip.tag",
+        "--first-release",
+        "--silent",
+      ],
+      { cwd: directory, env: { ...process.env, HUSKY: "0" }, encoding: "utf8" },
+    );
+    assert.equal(
+      await readFile(join(directory, "package.json"), "utf8"),
+      manifest,
+    );
+    assert.equal(
+      await readFile(join(directory, "package-lock.json"), "utf8"),
+      lock,
+    );
+    const notes = extractReleaseNotes(
+      await readFile(join(directory, "CHANGELOG.md"), "utf8"),
+      "0.1.0",
+    );
+    assert.match(notes, /initial routing implementation/);
+    assert.match(notes, /Bootstrap commit/);
+    assert.equal(git("rev-parse", "HEAD"), before);
+    assert.equal(git("tag", "--list"), "");
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 for (const [bump, expected] of [
   ["patch", "1.2.4"],
   ["minor", "1.3.0"],

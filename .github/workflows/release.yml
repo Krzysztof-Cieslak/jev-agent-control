@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: Version increment
+        description: Version increment (first keeps the current version)
         required: true
         type: choice
         default: patch
-        options: [patch, minor, major]
+        options: [first, patch, minor, major]
       dry_run:
         description: Preview the version, changelog, and npm package without publishing
         type: boolean
@@ -78,8 +78,19 @@ jobs:
         env:
           BUMP: ${{ inputs.bump }}
         run: |
-          case "$BUMP" in patch|minor|major) ;; *) exit 1 ;; esac
-          npm run release:prepare -- --release-as "$BUMP"
+          case "$BUMP" in
+            first)
+              if [[ -n "$(git tag --list 'v[0-9]*')" ]]; then
+                echo 'The first-release option is only available before any version tags exist.' >&2
+                exit 1
+              fi
+              npm run release:prepare -- --first-release
+              ;;
+            patch|minor|major)
+              npm run release:prepare -- --release-as "$BUMP"
+              ;;
+            *) exit 1 ;;
+          esac
           npm exec -- prettier --write package.json CHANGELOG.md
           VERSION=$(node -p 'require("./package.json").version')
           TAG="v$VERSION"

@@ -187,10 +187,10 @@ Run the release once using that token, configure the trusted publisher above, an
 
 ### Running a release
 
-Open **Actions → Release → Run workflow** on `main`, select `patch`, `minor`, or `major`, and run it. The workflow:
+Open **Actions → Release → Run workflow** on `main`, select `patch`, `minor`, or `major`, and run it. For the initial release only, select `first` to publish the current package version without incrementing it. This option requires that no version tags exist. The workflow:
 
 1. Validates Conventional Commits and checks for unreleased changes.
-2. Bumps `package.json` and both root version entries in `package-lock.json`.
+2. Bumps `package.json` and both root version entries in `package-lock.json`, or keeps the current version for `first`.
 3. Generates `CHANGELOG.md` from commit messages, grouped by type with breaking-change notes.
 4. Runs formatting, type checks, unit tests, and the build.
 5. Commits the version/changelog locally as `chore(release): x.y.z` and creates an annotated `vx.y.z` tag.
