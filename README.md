@@ -52,19 +52,6 @@ opencode auth login typesafe --method key
 
 Use `/connect` to add, switch, or delete saved accounts. OpenCode stores them in its server-side credential database and makes them available across projects using the same server. The plugin resolves the active account for each decision, so account switches, key changes, and removals take effect on the next evaluation without restarting OpenCode. Rejected keys are marked as needing authentication in OpenCode's account UI.
 
-For headless use, `TYPESAFE_API_KEY` on the **OpenCode server process** is an optional fallback. A saved account takes precedence over this environment connection. For example, load a local `.env` before starting a standalone server:
-
-```sh
-set -a
-. ./.env
-set +a
-opencode --standalone
-```
-
-An already-running shared service needs to be restarted to pick up a changed process environment. Saved-account changes through `/connect` take effect without a restart. The plugin does not automatically load project `.env` files.
-
-`TYPESAFE_BASE_URL` can override the TypeSafe API root for a proxy. The default endpoint is `https://api.typesafe.ai/v1/systemone`.
-
 ## Use
 
 Routing is automatic by default. Send a normal request:

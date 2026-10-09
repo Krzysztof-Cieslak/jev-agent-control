@@ -17,6 +17,23 @@ npm run build
 
 To try local changes in OpenCode, use the checkout path in the plugin configuration shown in the [README](README.md#install-locally). Rebuild with `npm run build` after changing TypeScript. Reload the plugin or restart your development OpenCode session to use the rebuilt code.
 
+### Environment-based credentials
+
+For development or headless use, `TYPESAFE_API_KEY` on the **OpenCode server process** is an optional fallback to the normal `/connect` setup. A saved TypeSafe account takes precedence over this environment connection.
+
+`.env.example` provides the variable name; put your key in a local `.env` file, which is ignored by Git. To load it before starting a standalone development server:
+
+```sh
+set -a
+. ./.env
+set +a
+opencode --standalone
+```
+
+An already-running shared service needs to be restarted to pick up a changed process environment. Saved-account changes through `/connect` take effect without a restart. The plugin does not automatically load project `.env` files; `test:live` and `test:e2e` explicitly load `.env`.
+
+`TYPESAFE_BASE_URL` can override the TypeSafe API root for a test endpoint or proxy. The default endpoint is `https://api.typesafe.ai/v1/systemone`.
+
 ## Project layout
 
 | Path                                             | Responsibility                                                  |
@@ -77,7 +94,7 @@ Put `TYPESAFE_API_KEY` in `.env`, then run:
 npm run test:live
 ```
 
-This explicitly loads `.env` and makes nine billable Jev requests against synthetic examples. It requires a Node version supporting `--env-file` (20.6+). `.env.example` provides the variable name; `.env` is ignored by Git. `TYPESAFE_BASE_URL` can override the API root for a test endpoint or proxy.
+This explicitly loads `.env` and makes nine billable Jev requests against synthetic examples. It requires a Node version supporting `--env-file` (20.6+).
 
 ### Fully live end-to-end test
 
